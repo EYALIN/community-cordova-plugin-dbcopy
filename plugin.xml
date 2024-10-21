@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        id="community-cordova-plugin-dbcopy"
+        version="1.0.0">
+    <name>Cordova Plugin Db Copy</name>
+    <description></description>
+    <license>MIT</license>
+    <keywords></keywords>
+    <repo>https://github.com/eyalin/community-cordova-plugin-dbcopy.git</repo>
+    <issue>https://github.com/eyalin/community-cordova-plugin-dbcopy/issues</issue>
+
+    <!-- android -->
+    <platform name="android">
+        <js-module src="www/plugin.js" name="DbCopyPlugin">
+            <runs/>
+
+            <!-- This is the window variable name you want, like window.DbCopyPlugin -->
+            <clobbers target="DbCopyPlugin" />
+        </js-module>
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
+        </config-file>
+
+
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="DbCopyPlugin">
+                <param name="android-package" value="CommunityPlugins.DbCopy.android.DbCopyPlugin" />
+                <param name="onload" value="true" />
+            </feature>
+        </config-file>
+
+        <source-file src="src/android/DbCopyPlugin.java" target-dir="src/CommunityPlugins/DbCopy/android" />
+    </platform>
+
+    <!-- ios -->
+    <platform name="ios">
+        <js-module src="www/plugin.js" name="plugin">
+            <runs/>
+            <clobbers target="DbCopyPlugin" />
+        </js-module>
+        <config-file target="config.xml" parent="/*">
+            <feature name="DbCopyPlugin">
+                <param name="ios-package" value="DbCopyPlugin" onload="true" />
+            </feature>
+        </config-file>
+
+        <header-file src="src/ios/DbCopyPlugin.h" />
+        <source-file src="src/ios/DbCopyPlugin.m" />
+    </platform>
+</plugin>
