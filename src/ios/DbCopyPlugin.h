@@ -1,8 +1,8 @@
 #import <Cordova/CDV.h>
 
-@interface SensorPlugin : CDVPlugin
+@interface DbCopyPlugin : CDVPlugin
 
-// Method to get the list of sensors
-- (void)getSensorList:(CDVInvokedUrlCommand *)command;
+- (void)copyDbFromStorage:(CDVInvokedUrlCommand*)command;
+- (void)copyDbToStorage:(CDVInvokedUrlCommand*)command;
 
 @end

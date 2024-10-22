@@ -18,8 +18,7 @@ import android.util.Base64;
 import java.io.FileOutputStream;
 
 public class DbCopyPlugin extends CordovaPlugin {
-private static final int REQUEST_CODE = 123; // Any unique number for your request code
-
+    private static final int REQUEST_CODE = 123; // Any unique number for your request code
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -36,7 +35,7 @@ private static final int REQUEST_CODE = 123; // Any unique number for your reque
         try {
             JSONObject options = args.getJSONObject(0);
             String dbName = options.getString("dbName");
-            String base64Source = options.getString("sourcePath"); // Now the base64-encoded string
+            String base64Source = options.getString("base64Source"); // Now the base64-encoded string
             String location = options.optString("location", "default");
             boolean deleteOldDb = options.optBoolean("deleteOldDb", false);
 
@@ -122,19 +121,29 @@ private static final int REQUEST_CODE = 123; // Any unique number for your reque
 
             // Get the app's database path for the specified file
             String sourcePath = getDatabasePath("default", fileName);
+            File destFolder;
+            File destFile;
 
-            // Destination file in storage
-            File destFile = new File(fullPath);
+            if (fullPath.indexOf("file://") != -1) {
+                destFile = new File(fullPath.replace("file://", "") + fileName);
+                destFolder = new File(fullPath.replace("file://", ""));
+            } else {
+                destFile = new File(fullPath + fileName);
+                destFolder = new File(fullPath);
+            }
 
-            // Check if the destination file already exists
-            if (destFile.exists()) {
-                if (!overwrite) {
-                    callbackContext.error("File already exists and overwrite is set to false.");
-                    return false;
-                } else if (!destFile.delete()) {
-                    callbackContext.error("Failed to overwrite the existing file.");
-                    return false;
-                }
+            if (!destFolder.exists()) {
+                destFolder.mkdirs();
+            }
+            if (!destFolder.exists()) {
+                callbackContext.error("Invalid output DB Location");
+                return false;
+            }
+
+            // Check if the destination file exists and handle overwrite option
+            if (destFile.exists() && !overwrite) {
+                callbackContext.error("File already exists and overwrite is set to false.");
+                return false;
             }
 
             // Copy the database from sourcePath to the provided fullPath
