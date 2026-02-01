@@ -11,11 +11,30 @@
         NSString* location = options[@"location"] ?: @"default";
         BOOL deleteOldDb = [options[@"deleteOldDb"] boolValue];
 
+        // Validate base64 source
+        if (!base64Source || [base64Source length] == 0) {
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"base64Source is empty or nil"];
+            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+            return;
+        }
+
         // Determine the destination path for the database
         NSString* destPath = [self getDatabasePath:location dbName:dbName];
 
-        // Check if the old DB exists and if it should be deleted
         NSFileManager* fileManager = [NSFileManager defaultManager];
+
+        // Ensure the destination directory exists
+        NSString* destDir = [destPath stringByDeletingLastPathComponent];
+        if (![fileManager fileExistsAtPath:destDir]) {
+            NSError* createDirError;
+            if (![fileManager createDirectoryAtPath:destDir withIntermediateDirectories:YES attributes:nil error:&createDirError]) {
+                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"Failed to create database directory: %@", createDirError.localizedDescription]];
+                [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                return;
+            }
+        }
+
+        // Check if the old DB exists and if it should be deleted
         if (deleteOldDb && [fileManager fileExistsAtPath:destPath]) {
             NSError* error;
             if (![fileManager removeItemAtPath:destPath error:&error]) {
@@ -26,7 +45,13 @@
         }
 
         // Decode Base64 string and write it to a temporary file
-        NSData* decodedData = [[NSData alloc] initWithBase64EncodedString:base64Source options:0];
+        NSData* decodedData = [[NSData alloc] initWithBase64EncodedString:base64Source options:NSDataBase64DecodingIgnoreUnknownCharacters];
+        if (!decodedData || [decodedData length] == 0) {
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Failed to decode base64 data - invalid format"];
+            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+            return;
+        }
+
         NSString* tempPath = [NSTemporaryDirectory() stringByAppendingPathComponent:dbName];
         [decodedData writeToFile:tempPath atomically:YES];
 
@@ -37,6 +62,9 @@
         } else {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"Database copied successfully."];
         }
+
+        // Cleanup temp file
+        [fileManager removeItemAtPath:tempPath error:nil];
     } @catch (NSException* exception) {
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:exception.reason];
     }
@@ -52,6 +80,12 @@
         NSString* fullPath = options[@"fullPath"];
         BOOL overwrite = [options[@"overwrite"] boolValue];
 
+        // Convert file:// URL to path if needed (Cordova's dataDirectory returns a URL)
+        if ([fullPath hasPrefix:@"file://"]) {
+            NSURL* url = [NSURL URLWithString:fullPath];
+            fullPath = [url path];
+        }
+
         // Get the app's database path for the specified file
         NSString* sourcePath = [self getDatabasePath:@"default" dbName:fileName];
         NSString* destPath = [fullPath stringByAppendingPathComponent:fileName];
@@ -59,10 +93,11 @@
         NSFileManager* fileManager = [NSFileManager defaultManager];
 
         // Create the destination directory if it doesn't exist
-        NSString* destDir = [fullPath stringByDeletingLastPathComponent];
-        if (![fileManager fileExistsAtPath:destDir]) {
+        // Use fullPath directly as the directory (not stringByDeletingLastPathComponent)
+        // because fullPath already contains the backup folder path
+        if (![fileManager fileExistsAtPath:fullPath]) {
             NSError* createDirError;
-            if (![fileManager createDirectoryAtPath:destDir withIntermediateDirectories:YES attributes:nil error:&createDirError]) {
+            if (![fileManager createDirectoryAtPath:fullPath withIntermediateDirectories:YES attributes:nil error:&createDirError]) {
                 pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"Failed to create destination directory: %@", createDirError.localizedDescription]];
                 [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
                 return;
@@ -98,7 +133,9 @@
     } else if ([location isEqualToString:@"external"]) {
         basePath = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
     } else {
-        basePath = [[self.commandDelegate pathForResource:dbName] stringByDeletingLastPathComponent];
+        // Default location for cordova-sqlite-storage is Library/LocalDatabase
+        NSString* libraryPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) firstObject];
+        basePath = [libraryPath stringByAppendingPathComponent:@"LocalDatabase"];
     }
     return [basePath stringByAppendingPathComponent:dbName];
 }
