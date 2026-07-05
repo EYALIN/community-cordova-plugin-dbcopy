@@ -2,7 +2,7 @@
 
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
         id="community-cordova-plugin-dbcopy"
-        version="1.0.2">
+        version="1.0.3">
     <name>Cordova Plugin Db Copy</name>
     <description></description>
     <license>MIT</license>
