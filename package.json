@@ -1,6 +1,6 @@
 {
   "name": "community-cordova-plugin-dbcopy",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "types": "./types/index.d.ts",
   "readme": "README.md",
   "repository": "EYALIN/community-cordova-plugin-dbcopy/tree/master",
